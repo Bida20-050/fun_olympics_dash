@@ -86,17 +86,19 @@ def generate_test_data(num_rows):
 def get_data(use_api=False, api_key=None, api_endpoint=None):
     if use_api:
         if api_key and api_endpoint:
+            time.sleep(15)  # Add a 15-second sleep
             data = get_olympics_data_from_api(api_key, api_endpoint)
             if data:
                 fun_olympics_df = clean_olympics_data(data)
                 return fun_olympics_df
         else:
             print("API key or endpoint not provided. Returning generated data instead.")
-    fun_olympics_test = generate_test_data(NUM_TEST_ROWS)
-    return fun_olympics_test
+    else:
+        fun_olympics_test = generate_test_data(NUM_TEST_ROWS)
+        return fun_olympics_test
 
-#df = get_data(use_api=False)
-df = pd.read_csv("olympics_data.csv", encoding = "ISO-8859-1")
+df = get_data(use_api=False)
+df = df = pd.read_csv("olympics_data.csv", encoding = "ISO-8859-1")
 
 # Dashboard
 st.set_page_config(page_title="FunOlmypics_Dash", page_icon=":bar_chart:",layout="wide")
