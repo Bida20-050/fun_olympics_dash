@@ -97,7 +97,7 @@ def get_data(use_api=False, api_key=None, api_endpoint=None):
         fun_olympics_test = generate_test_data(NUM_TEST_ROWS)
         return fun_olympics_test
 
-df = get_data(use_api=False)
+#df = get_data(use_api=False)
 df = df = pd.read_csv("olympics_data.csv", encoding = "ISO-8859-1")
 
 # Dashboard
