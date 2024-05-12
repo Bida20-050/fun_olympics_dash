@@ -215,23 +215,3 @@ with st.expander("Summary_Table"):
 # Download orginal DataSet
 csv = df.to_csv(index = False).encode('utf-8')
 st.download_button('Download CSV Dataset', data = csv, file_name = "OlympicData.csv",mime = "text/csv")
-
-
-# promotion uploads --> helping marketing team
-# Add a section for image upload
-st.markdown("---")
-st.markdown("### Advertisements")
-st.markdown("---")
-
-uploaded_image = st.file_uploader(":camera: Upload a Promo", type=["png", "jpg", "jpeg"])
-
-if uploaded_image is not None:
-    # Read the uploaded image using PIL
-    from PIL import Image
-    img = Image.open(uploaded_image)
-
-    # Resize the image to 140px
-    img = img.resize((400, int(img.size[1] * (140 / img.size[0]))))
-
-    # Display the resized image
-    st.image(np.array(img), caption='Uploaded Image.', use_column_width=True)
