@@ -11,14 +11,13 @@ import warnings
 from datetime import datetime, timedelta
 warnings.filterwarnings('ignore')
 
-API_KEY = None
-API_ENDPOINT = None
-
 import datetime
-
 NUM_TEST_ROWS = 2000
 START_DATE = datetime.date(2024, 6, 7)
 END_DATE = datetime.date(2024, 6, 10)
+
+API_KEY = None
+API_ENDPOINT = None
 
 def get_olympics_data_from_api(api_key, api_endpoint):
     try:
