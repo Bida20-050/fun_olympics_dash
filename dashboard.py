@@ -97,7 +97,7 @@ def get_data(use_api=False, api_key=None, api_endpoint=None):
         return fun_olympics_test
 
 #df = get_data(use_api=False)
-df = df = pd.read_csv("olympics_data.csv", encoding = "ISO-8859-1")
+df = pd.read_csv("olympics_data.csv", encoding = "ISO-8859-1")
 
 # Dashboard
 st.set_page_config(page_title="FunOlmypics_Dash", page_icon=":bar_chart:",layout="wide")
