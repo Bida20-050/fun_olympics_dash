@@ -6,18 +6,14 @@ import csv
 import numpy as np
 import streamlit as st
 import plotly.express as px
+import plotly.figure_factory as ff
 import os
 import warnings
 from datetime import datetime, timedelta
-warnings.filterwarnings('ignore')
-
-import datetime
-NUM_TEST_ROWS = 2000
-START_DATE = datetime.date(2024, 6, 7)
-END_DATE = datetime.date(2024, 6, 10)
 
 API_KEY = None
 API_ENDPOINT = None
+NUM_TEST_ROWS = 2000
 
 def get_olympics_data_from_api(api_key, api_endpoint):
     try:
@@ -41,6 +37,7 @@ def clean_olympics_data(data):
             'Channel': entry['channel']
         } for entry in data
     ]
+
     sports_data_df = pd.DataFrame(sports_data_list)
     sports_data_df.replace('', pd.NA, inplace=True)
     sports_data_df.dropna(inplace=True)
@@ -58,6 +55,11 @@ def generate_timestamps(start_date, end_date):
         current_date += datetime.timedelta(days=1)
     return timestamps
 
+
+import datetime
+START_DATE = datetime.date(2024, 7, 6)
+END_DATE = datetime.date(2024, 7, 10)
+
 def generate_test_data(num_rows):
     random_ip_addresses = generate_random_ip_addresses(num_rows)
     timestamps = generate_timestamps(START_DATE, END_DATE)
@@ -71,7 +73,7 @@ def generate_test_data(num_rows):
     sports_data = []
     for _ in range(num_rows):
         sports_data.append({
-            'Timestamp': random.choice(timestamps),
+            'Timestamp': pd.to_datetime(random.choice(timestamps)),
             'Viewer IPs': random.choice(random_ip_addresses),
             'User ID': random.choice(user_ids),
             'Country': random.choice(countries),
@@ -96,121 +98,103 @@ def get_data(use_api=False, api_key=None, api_endpoint=None):
         fun_olympics_test = generate_test_data(NUM_TEST_ROWS)
         return fun_olympics_test
 
-#df = get_data(use_api=False)
-df = pd.read_csv("olympics_data.csv", encoding = "ISO-8859-1")
+df = pd.read_csv(r"C:\Users\bida20-050\Downloads\fun_olympics\fun_olympics.csv", encoding = "ISO-8859-1")
 
-# Dashboard
-st.set_page_config(page_title="FunOlmypics_Dash", page_icon=":bar_chart:",layout="wide")
-
-st.title("Fun Olympics Streaming Dashboard")
-st.markdown('<style>div.block-container{padding-top:1rem;}</style>',unsafe_allow_html=True)
-
-col1, col2 = st.columns((2))
+# Ensure correct data types
 df["Timestamp"] = pd.to_datetime(df["Timestamp"])
+df["Country"] = df["Country"].astype(str)
+df["Sport"] = df["Sport"].astype(str)
+df["Device"] = df["Device"].astype(str)
 
-# Getting the min and max dates
-startDate = pd.to_datetime(df["Timestamp"]).min()
-endDate = pd.to_datetime(df["Timestamp"]).max()
+# Page configuration
+st.set_page_config(page_title="FunOlympics_Dash", page_icon=":bar_chart:", layout="wide")
+st.title("Fun Olympics Streaming Dashboard")
+st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
-with col1:
-    date1 = pd.to_datetime(st.date_input("Start Date", startDate))
-
-with col2:
-    date2 = pd.to_datetime(st.date_input("End Date", endDate))
-
-df = df[(df["Timestamp"] >= date1) & (df["Timestamp"] <= date2)].copy()
-
-st.sidebar.header("Choose your filter: ")
-# Create for Country
+# Sidebar filters
+st.sidebar.header("Choose your filter:")
 Country = st.sidebar.multiselect("Pick your Country", df["Country"].unique())
-if not Country:
-    df2 = df.copy()
-else:
-    df2 = df[df["Country"].isin(Country)]
+Sport = st.sidebar.multiselect("Pick the Sport", df["Sport"].unique())
+Device = st.sidebar.multiselect("Pick the Device", df["Device"].unique())
 
-# Create for Sport
-Sport = st.sidebar.multiselect("Pick the Sport", df2["Sport"].unique())
-if not Sport:
-    df3 = df2.copy()
-else:
-    df3 = df2[df2["Sport"].isin(Sport)]
+# Filter data based on sidebar input
+def filter_data(df, Country, Sport, Device):
+    if Country:
+        df = df[df["Country"].isin(Country)]
+    if Sport:
+        df = df[df["Sport"].isin(Sport)]
+    if Device:
+        df = df[df["Device"].isin(Device)]
+    return df
 
-# Create for Device
-Device = st.sidebar.multiselect("Pick the Device",df3["Device"].unique())
+# Chart functions
+def create_views_per_sport_chart(df):
+    category_df = df.groupby(by=["Sport"], as_index=False)["Duration"].sum()
+    fig = px.bar(category_df, x="Sport", y="Duration", text=['{:,d}'.format(x) for x in category_df["Duration"]],
+                 template="seaborn")
+    fig.update_layout(title_text = "Views Per Sport")
+    return fig
 
-# Filter the data based on Country, Sport and Device
-if not Country and not Sport and not Device:
-    filtered_df = df
-elif not Sport and not Device:
-    filtered_df = df[df["Country"].isin(Country)]
-elif not Country and not Device:
-    filtered_df = df[df["Sport"].isin(Sport)]
-elif Sport and Device:
-    filtered_df = df3[df["Sport"].isin(Sport) & df3["Device"].isin(Device)]
-elif Country and Device:
-    filtered_df = df3[df["Country"].isin(Country) & df3["Device"].isin(Device)]
-elif Country and Sport:
-    filtered_df = df3[df["Country"].isin(Country) & df3["Sport"].isin(Sport)]
-elif Device:
-    filtered_df = df3[df3["Device"].isin(Device)]
-else:
-    filtered_df = df3[df3["Country"].isin(Country) & df3["Sport"].isin(Sport) & df3["Device"].isin(Device)]
+def create_views_per_country_chart(df):
+    fig = px.pie(df, values="Duration", names="Country", hole=0.5)
+    fig.update_traces(text=df["Country"], textposition="outside")
+    fig.update_layout(title_text = "Views Per Country")
+    return fig
 
-category_df = filtered_df.groupby(by = ["Sport"], as_index = False)["Duration"].sum()
+def create_time_series_chart(df):
+    df["date"] = df["Timestamp"].dt.date
+    linechart = pd.DataFrame(df.groupby(df["date"])["Duration"].sum()).reset_index()
+    fig = px.line(linechart, x="date", y="Duration", labels={"Duration": "Views"}, height=500, width=1000, template="gridon")
+    fig.update_layout(title_text = "Time Series Chart")
+    return fig
 
-with col1:
-    st.subheader("Views Per Sport")
-    fig = px.bar(category_df, x = "Sport", y = "Duration", text = ['{:,d}'.format(x) for x in category_df["Duration"]],
-                 template = "seaborn")
-    st.plotly_chart(fig,use_container_width=True, height = 200)
+def create_views_by_channel_chart(df):
+    fig = px.pie(df, values="Duration", names="Channel", template="plotly_dark")
+    fig.update_traces(text=df["Channel"], textposition="inside")
+    fig.update_layout(title_text = "Views Per Channel")
+    return fig
 
-with col2:
-    st.subheader("Views Per Country")
-    fig = px.pie(filtered_df, values = "Duration", names = "Country", hole = 0.5)
-    fig.update_traces(text = filtered_df["Country"], textposition = "outside")
-    st.plotly_chart(fig,use_container_width=True)
+def create_views_by_device_chart(df):
+    fig = px.pie(df, values="Duration", names="Device", template="gridon")
+    fig.update_traces(text=df["Device"], textposition="inside")
+    fig.update_layout(title_text = "Views Per Chart")
+    return fig
 
-cl1, cl2 = st.columns((2))
-with cl1:
-    with st.expander("views_per_sport"):
-        st.write(category_df.style.background_gradient(cmap="Blues"))
-        csv = category_df.to_csv(index = False).encode('utf-8')
-        st.download_button("Download Data", data = csv, file_name = "Views_Per_Country.csv", mime = "text/csv",
-                            help = 'Click here to download the data as a CSV file')
+# Dashboard layout with placeholders
+col1, col2 = st.columns(2)
+col3, col4 = st.columns(2)
 
-filtered_df["date"] = filtered_df["Timestamp"].dt.date
+views_per_sport_placeholder = col1.empty()
+views_per_country_placeholder = col2.empty()
+time_series_placeholder = st.empty()
+views_by_channel_placeholder = col3.empty()
+views_by_device_placeholder = col4.empty()
 
-st.subheader('Time Series Analysis')
+st.download_button(label="Download data as CSV", data=df.to_csv(index=False).encode('utf-8'),file_name='filtered_data.csv', mime='text/csv')
 
-linechart = pd.DataFrame(filtered_df.groupby(filtered_df["date"])["Duration"].sum()).reset_index()
-fig2 = px.line(linechart, x = "date", y="Duration", labels = {"Duration": "Views"},height=500, width = 1000,template="gridon")
-st.plotly_chart(fig2,use_container_width=True)
+# Simulate real-time updates
+while True:
+    df = get_data(use_api=False)  # Fetch new data
+    df = filter_data(df, Country, Sport, Device)  # Apply filters
+    with views_per_sport_placeholder:
+        
+        fig = create_views_per_sport_chart(df)
+        st.plotly_chart(fig, use_container_width=True)
 
-with st.expander("View Data of TimeSeries:"):
-    st.write(linechart.T.style.background_gradient(cmap="Blues"))
-    csv = linechart.to_csv(index=False).encode("utf-8")
-    st.download_button('Download Data', data = csv, file_name = "TimeSeries.csv", mime ='text/csv')
+    with views_per_country_placeholder:
+        fig = create_views_per_country_chart(df)
+        st.plotly_chart(fig, use_container_width=True)
 
-chart1, chart2 = st.columns((2))
-with chart1:
-    st.subheader('Views By Channel')
-    fig = px.pie(filtered_df, values = "Duration", names = "Channel", template = "plotly_dark")
-    fig.update_traces(text = filtered_df["Channel"], textposition = "inside")
-    st.plotly_chart(fig,use_container_width=True)
+    with time_series_placeholder:
+        fig = create_time_series_chart(df)
+        st.plotly_chart(fig, use_container_width=True)
 
-with chart2:
-    st.subheader('Views By Streaming Device')
-    fig = px.pie(filtered_df, values = "Duration", names = "Device", template = "gridon")
-    fig.update_traces(text = filtered_df["Device"], textposition = "inside")
-    st.plotly_chart(fig,use_container_width=True)
+    with views_by_channel_placeholder:
+        fig = create_views_by_channel_chart(df)
+        st.plotly_chart(fig, use_container_width=True)
 
-import plotly.figure_factory as ff
-st.subheader("Olympic Games Streaming Summary")
-with st.expander("Summary_Table"):
-    df_sample = df[0:15][["Timestamp","Country","Sport","Device","Channel"]]
-    fig = ff.create_table(df_sample, colorscale = "Cividis")
-    st.plotly_chart(fig, use_container_width=True)
-
-# Download orginal DataSet
-csv = df.to_csv(index = False).encode('utf-8')
-st.download_button('Download CSV Dataset', data = csv, file_name = "OlympicData.csv",mime = "text/csv")
+    with views_by_device_placeholder:
+        fig = create_views_by_device_chart(df)
+        st.plotly_chart(fig, use_container_width=True)
+    
+    time.sleep(3)  # Update every 3 seconds
