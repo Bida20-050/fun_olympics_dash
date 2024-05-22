@@ -98,7 +98,7 @@ def get_data(use_api=False, api_key=None, api_endpoint=None):
         fun_olympics_test = generate_test_data(NUM_TEST_ROWS)
         return fun_olympics_test
 
-df = pd.read_csv(r"C:\Users\bida20-050\Downloads\fun_olympics\fun_olympics.csv", encoding = "ISO-8859-1")
+df = pd.read_csv("olympics_data.csv", encoding = "ISO-8859-1")
 
 # Ensure correct data types
 df["Timestamp"] = pd.to_datetime(df["Timestamp"])
