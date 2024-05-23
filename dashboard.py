@@ -99,6 +99,7 @@ def get_data(use_api=False, api_key=None, api_endpoint=None):
         return fun_olympics_test
 
 df = pd.read_csv("olympics_data.csv", encoding = "ISO-8859-1")
+# df = get_data()
 
 # Ensure correct data types
 df["Timestamp"] = pd.to_datetime(df["Timestamp"])
