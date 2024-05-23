@@ -98,7 +98,7 @@ def get_data(use_api=False, api_key=None, api_endpoint=None):
         fun_olympics_test = generate_test_data(NUM_TEST_ROWS)
         return fun_olympics_test
 
-df = pd.read_csv(r"C:\Users\bida20-050\Downloads\fun_olympics\fun_olympics.csv", encoding = "ISO-8859-1")
+df = pd.read_csv("olympics_data.csv")
 
 # Ensure correct data types
 df["Timestamp"] = pd.to_datetime(df["Timestamp"])
@@ -169,8 +169,6 @@ def create_summary_table(df):
 # Dashboard layout with placeholders
 col1, col2 = st.columns(2)
 col3, col4 = st.columns(2)
-col5, col6 = st.columns(2)
-
 views_per_sport_placeholder = col1.empty()
 views_per_country_placeholder = col2.empty()
 views_by_channel_placeholder = col3.empty()
@@ -207,4 +205,5 @@ while True:
 
     summary_table  = create_summary_table(df)
     summary_table_placeholder.plotly_chart(summary_table, use_container_width= True)
+    
     time.sleep(3)  # Update every 3 seconds
