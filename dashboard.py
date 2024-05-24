@@ -157,7 +157,7 @@ def create_views_by_channel_chart(df):
 def create_views_by_device_chart(df):
     fig = px.pie(df, values="Duration", names="Device", template="gridon")
     fig.update_traces(text=df["Device"], textposition="inside")
-    fig.update_layout(title_text = "Views Per Chart")
+    fig.update_layout(title_text = "Views Per Device")
     return fig
 
 def create_summary_table(df):
