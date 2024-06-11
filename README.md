@@ -1,4 +1,4 @@
-# FunOlympics_Dash
+# FunOlympics_Dash : A Streamlit Dashboard Scenario
 
 ## Overview
 
